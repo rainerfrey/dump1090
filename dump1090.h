@@ -83,6 +83,7 @@
 #endif
 
 #include "compat/compat.h"
+#include "MQTTClient.h"
 
 // Avoid a dependency on rtl-sdr except where it's really needed.
 typedef struct rtlsdr_dev rtlsdr_dev_t;
@@ -346,6 +347,7 @@ struct {                             // Internal state
     int stats_latest_1min;
     struct stats stats_5min;
     struct stats stats_15min;
+    MQTTClient mqttClient;
 } Modes;
 
 // The struct we use to store information about a decoded message.

@@ -235,6 +235,23 @@ struct net_service *makeFatsvOutputService(void)
     return serviceInit("FATSV TCP output", &Modes.fatsv_out, NULL, NULL, NULL);
 }
 
+MQTTClient mqttConnect(void) {
+    MQTTClient client;
+    MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
+    int rc;
+
+    MQTTClient_create(&client, ADDRESS, CLIENTID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+    conn_opts.keepAliveInterval = 20;
+    conn_opts.cleansession = 1;
+
+    if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
+    {
+        printf("Failed to connect, return code %d\n", rc);
+    }
+
+    return client;
+}
+
 void modesInitNet(void) {
     struct net_service *s;
 
@@ -260,6 +277,8 @@ void modesInitNet(void) {
 
     s = serviceInit("HTTP server", NULL, NULL, "\r\n\r\n", handleHTTPRequest);
     serviceListen(s, Modes.net_bind_address, Modes.net_http_ports);
+
+    Modes.mqttClient = mqttConnect();
 }
 //
 //=========================================================================
@@ -668,6 +687,27 @@ static void send_sbs_heartbeat(struct net_service *service)
 
     memcpy(data, heartbeat_message, len);
     completeWrite(service->writer, data + len);
+}
+
+static void sendAircraftDataToMQTT(void) {
+    char path [PATH_MAX];
+    int len;
+
+    char *content = NULL;
+
+    content = generateAircraftJson(path, &len);
+
+    MQTTClient client = Modes.mqttClient;
+    MQTTClient_deliveryToken token;
+    MQTTClient_message pubmsg = MQTTClient_message_initializer;
+
+    pubmsg.payload = content;
+    pubmsg.payloadlen = len;
+    pubmsg.qos = QOS;
+    pubmsg.retained = 0;
+    MQTTClient_publishMessage(client, TOPIC, &pubmsg, &token);
+    MQTTClient_waitForCompletion(client, token, TIMEOUT);
+    free(content);
 }
 
 //
@@ -1815,6 +1855,8 @@ void modesNetPeriodicWork(void) {
 
     // Accept new connetions
     modesAcceptClients();
+
+    sendAircraftDataToMQTT();
 
     // Read from clients
     for (c = Modes.clients; c; c = c->next) {

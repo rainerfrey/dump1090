@@ -15,8 +15,8 @@ EXTRACFLAGS=-DHTMLPATH=\"$(SHAREDIR)\"
 endif
 
 CPPFLAGS+=-DMODES_DUMP1090_VERSION=\"$(DUMP1090_VERSION)\"
-CFLAGS+=-O2 -g -Wall -Werror -W
-LIBS=-lpthread -lm
+CFLAGS+=-O2 -g -Wall -W
+LIBS=-lpthread -lm -lpaho-mqtt3c
 LIBS_RTL=`pkg-config --libs librtlsdr`
 CC=gcc
 
