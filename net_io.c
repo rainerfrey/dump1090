@@ -690,6 +690,17 @@ static void send_sbs_heartbeat(struct net_service *service)
 }
 
 static void sendAircraftDataToMQTT(void) {
+    uint64_t now;
+    static uint64_t next_update;
+
+    now = mstime();
+    if (now < next_update) {
+        return;
+    }
+
+    // update once a second at most
+    next_update = now + 1000;
+    
     char path [PATH_MAX];
     int len;
 
