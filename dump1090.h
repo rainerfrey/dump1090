@@ -208,6 +208,13 @@ typedef struct rtlsdr_dev rtlsdr_dev_t;
 #define MAX_AMPLITUDE 65535.0
 #define MAX_POWER (MAX_AMPLITUDE * MAX_AMPLITUDE)
 
+#define MQTT_DEFAULT_URL        "tcp://127.0.0.1:1883"
+#define MQTT_DEFAULT_CLIENTID   "dump1090mutability"
+#define MQTT_DEFAULT_TOPIC      "position-updates"
+#define MQTT_QOS                1
+#define MQTT_TIMEOUT            10000L
+
+
 // Include subheaders after all the #defines are in place
 
 #include "util.h"
@@ -347,7 +354,11 @@ struct {                             // Internal state
     int stats_latest_1min;
     struct stats stats_5min;
     struct stats stats_15min;
-    MQTTClient mqttClient;
+    int mqtt;
+    char *mqtt_url;                   // URL for a MQTT broker connection
+    char *mqtt_topic;                 // name of a MQTT topic to publish to
+    char *mqtt_clientid;              // MQTT client id
+    MQTTClient mqtt_client;
 } Modes;
 
 // The struct we use to store information about a decoded message.

@@ -20,13 +20,6 @@
 #ifndef DUMP1090_NETIO_H
 #define DUMP1090_NETIO_H
 
-// Defines for the MQTT connection
-#define ADDRESS     "tcp://127.0.0.1:1883"
-#define CLIENTID    "dump1090-mutability"
-#define TOPIC       "position-updates"
-#define QOS         1
-#define TIMEOUT     10000L
-
 // Describes a networking service (group of connections)
 
 struct aircraft;
@@ -75,6 +68,7 @@ void serviceListen(struct net_service *service, char *bind_addr, char *bind_port
 struct client *createSocketClient(struct net_service *service, int fd);
 struct client *createGenericClient(struct net_service *service, int fd);
 MQTTClient mqttConnect(void);
+void mqttDisconnect(void);
 
 // view1090 / faup1090 want to create these themselves:
 struct net_service *makeBeastInputService(void);

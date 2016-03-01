@@ -157,6 +157,9 @@ void modesInitConfig(void) {
     Modes.json_interval           = 1000;
     Modes.json_location_accuracy  = 1;
     Modes.maxRange                = 1852 * 300; // 300NM default max range
+    Modes.mqtt_url                = MQTT_DEFAULT_URL;
+    Modes.mqtt_topic              = MQTT_DEFAULT_TOPIC;
+    Modes.mqtt_clientid           = MQTT_DEFAULT_CLIENTID;
 }
 //
 //=========================================================================
@@ -722,6 +725,10 @@ void showHelp(void) {
 "--oversample             Use the 2.4MHz demodulator\n"
 "--dcfilter               Apply a 1Hz DC filter to input data (requires lots more CPU)\n"
 "--measure-noise          Measure noise power (requires slightly more CPU)\n"
+"--mqtt                   Publish aircraft data to MQTT\n"
+"--mqtt-url               URL to the MQTT broker (default: tcp://127.0.0.1:1883)\n"
+"--mqtt-clientid          URL to the MQTT broker (default: dump1090mutability)\n"
+"--mqtt-topic             MQTT topic to publish to (default: position-updates\n"
 "--help                   Show this help\n"
 "\n"
 "Debug mode flags: d = Log frames decoded with errors\n"
@@ -1087,6 +1094,14 @@ int main(int argc, char **argv) {
         } else if (!strcmp(argv[j], "--json-location-accuracy") && more) {
             Modes.json_location_accuracy = atoi(argv[++j]);
 #endif
+        } else if (!strcmp(argv[j], "--mqtt")) {
+            Modes.mqtt = 1;
+        } else if (!strcmp(argv[j], "--mqtt-url") && more) {
+            Modes.mqtt_url = strdup(argv[++j]);
+        } else if (!strcmp(argv[j], "--mqtt-clientid") && more) {
+            Modes.mqtt_clientid = strdup(argv[++j]);
+        } else if (!strcmp(argv[j], "--mqtt-topic") && more) {
+            Modes.mqtt_topic = strdup(argv[++j]);
         } else {
             fprintf(stderr,
                 "Unknown or not enough arguments for option '%s'.\n\n",
@@ -1247,6 +1262,7 @@ int main(int argc, char **argv) {
     }
 
     cleanup_converter(Modes.converter_state);
+    mqttDisconnect();
     log_with_timestamp("Normal exit.");
 
 #ifndef _WIN32

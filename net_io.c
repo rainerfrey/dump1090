@@ -236,11 +236,14 @@ struct net_service *makeFatsvOutputService(void)
 }
 
 MQTTClient mqttConnect(void) {
+    if (!Modes.mqtt) {
+        return NULL;
+    }
     MQTTClient client;
     MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
     int rc;
 
-    MQTTClient_create(&client, ADDRESS, CLIENTID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+    MQTTClient_create(&client, Modes.mqtt_url, Modes.mqtt_clientid, MQTTCLIENT_PERSISTENCE_NONE, NULL);
     conn_opts.keepAliveInterval = 20;
     conn_opts.cleansession = 1;
 
@@ -250,6 +253,14 @@ MQTTClient mqttConnect(void) {
     }
 
     return client;
+}
+
+void mqttDisconnect(void) {
+    if (Modes.mqtt_client != NULL) {
+        MQTTClient client = Modes.mqtt_client;
+        MQTTClient_disconnect(client, 10000);
+        MQTTClient_destroy(&client);
+    }
 }
 
 void modesInitNet(void) {
@@ -278,7 +289,7 @@ void modesInitNet(void) {
     s = serviceInit("HTTP server", NULL, NULL, "\r\n\r\n", handleHTTPRequest);
     serviceListen(s, Modes.net_bind_address, Modes.net_http_ports);
 
-    Modes.mqttClient = mqttConnect();
+    Modes.mqtt_client = mqttConnect();
 }
 //
 //=========================================================================
@@ -690,6 +701,9 @@ static void send_sbs_heartbeat(struct net_service *service)
 }
 
 static void sendAircraftDataToMQTT(void) {
+    if (!Modes.mqtt) {
+        return;
+    }
     uint64_t now;
     static uint64_t next_update;
 
@@ -708,16 +722,16 @@ static void sendAircraftDataToMQTT(void) {
 
     content = generateAircraftJson(path, &len);
 
-    MQTTClient client = Modes.mqttClient;
+    MQTTClient client = Modes.mqtt_client;
     MQTTClient_deliveryToken token;
     MQTTClient_message pubmsg = MQTTClient_message_initializer;
 
     pubmsg.payload = content;
     pubmsg.payloadlen = len;
-    pubmsg.qos = QOS;
+    pubmsg.qos = MQTT_QOS;
     pubmsg.retained = 0;
-    MQTTClient_publishMessage(client, TOPIC, &pubmsg, &token);
-    MQTTClient_waitForCompletion(client, token, TIMEOUT);
+    MQTTClient_publishMessage(client, Modes.mqtt_topic, &pubmsg, &token);
+    MQTTClient_waitForCompletion(client, token, MQTT_TIMEOUT);
     free(content);
 }
 
